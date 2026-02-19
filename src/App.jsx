@@ -443,7 +443,10 @@ const LoginPage = ({ onLogin, dark, toggleDark }) => {
 /* ─────────────────────────────────────────────
    SIDEBAR
 ───────────────────────────────────────────── */
-const Sidebar = ({ active, setActive, collapsed, setCollapsed, onLogout, T }) => (
+const Sidebar = ({ active, setActive, collapsed, setCollapsed, onLogout, T }) => {
+  const [confirm, setConfirm] = useState(false);
+  return (
+  <>
   <aside style={{
     width:collapsed?68:224, height:"100vh", flexShrink:0,
     background:T.sidebarBg,
@@ -493,12 +496,22 @@ const Sidebar = ({ active, setActive, collapsed, setCollapsed, onLogout, T }) =>
       <button onClick={()=>setCollapsed(!collapsed)} style={{ display:"flex",alignItems:"center",gap:"0.65rem",padding:"0.5rem 0.82rem",borderRadius:8,border:"none",cursor:"pointer",background:"transparent",color:"#4b5563",fontSize:"0.8rem",width:"100%",fontFamily:"'DM Sans',sans-serif" }}>
         <span>{collapsed?"⇥":"⇤"}</span>{!collapsed&&"Collapse"}
       </button>
-      <button onClick={onLogout} style={{ display:"flex",alignItems:"center",gap:"0.65rem",padding:"0.5rem 0.82rem",borderRadius:8,border:"none",cursor:"pointer",background:"rgba(248,113,113,0.08)",color:"#f87171",fontSize:"0.8rem",width:"100%",fontFamily:"'DM Sans',sans-serif",marginTop:"0.2rem" }}>
+      <button onClick={()=>setConfirm(true)} style={{ display:"flex",alignItems:"center",gap:"0.65rem",padding:"0.5rem 0.82rem",borderRadius:8,border:"none",cursor:"pointer",background:"rgba(248,113,113,0.08)",color:"#f87171",fontSize:"0.8rem",width:"100%",fontFamily:"'DM Sans',sans-serif",marginTop:"0.2rem" }}>
         🚪{!collapsed&&" Sign Out"}
       </button>
     </div>
   </aside>
-);
+
+  {confirm && (
+    <LogoutConfirmModal
+      T={T}
+      onConfirm={onLogout}
+      onCancel={()=>setConfirm(false)}
+    />
+  )}
+  </>
+  );
+};
 
 /* ─────────────────────────────────────────────
    MOBILE BOTTOM NAV
@@ -1095,6 +1108,152 @@ const SettingsPage = ({ T, dark, toggleDark, bp }) => {
 };
 
 /* ─────────────────────────────────────────────
+   LOGOUT CONFIRM MODAL
+───────────────────────────────────────────── */
+const LogoutConfirmModal = ({ onConfirm, onCancel, T }) => (
+  <div style={{
+    position:"fixed", inset:0, zIndex:200,
+    display:"flex", alignItems:"center", justifyContent:"center",
+    background:"rgba(0,0,0,0.55)", backdropFilter:"blur(4px)",
+    animation:"fadeUp .18s ease",
+  }}
+    onClick={onCancel}
+  >
+    <div style={{
+      background: T.dark ? "#1a1744" : "#ffffff",
+      border:`1px solid ${T.border}`,
+      borderRadius:18, padding:"1.8rem 1.6rem",
+      width:"100%", maxWidth:340, margin:"0 1rem",
+      boxShadow:"0 24px 64px rgba(0,0,0,0.45)",
+      animation:"fadeUp .2s ease",
+    }}
+      onClick={e=>e.stopPropagation()}
+    >
+      {/* Icon */}
+      <div style={{ width:56,height:56,borderRadius:16,background:"rgba(248,113,113,0.12)",border:"1px solid rgba(248,113,113,0.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.6rem",margin:"0 auto 1.1rem" }}>🚪</div>
+
+      {/* Text */}
+      <h3 style={{ fontFamily:"'Syne',sans-serif",fontSize:"1.1rem",fontWeight:800,color:T.text,margin:"0 0 0.4rem",textAlign:"center",letterSpacing:"-0.02em" }}>
+        Sign out?
+      </h3>
+      <p style={{ color:T.textSub,fontSize:"0.83rem",textAlign:"center",margin:"0 0 1.5rem",lineHeight:1.55 }}>
+        You'll need to sign in again to access your portal.
+      </p>
+
+      {/* Buttons */}
+      <div style={{ display:"flex",gap:"0.65rem" }}>
+        <button onClick={onCancel} style={{
+          flex:1, padding:"0.78rem", borderRadius:11,
+          border:`1.5px solid ${T.border}`, background:"transparent",
+          color:T.textSub, fontWeight:600, fontSize:"0.88rem",
+          cursor:"pointer", fontFamily:"'DM Sans',sans-serif",
+          transition:"all .15s",
+        }}
+          onMouseEnter={e=>{ e.currentTarget.style.borderColor=T.accent; e.currentTarget.style.color=T.accent; }}
+          onMouseLeave={e=>{ e.currentTarget.style.borderColor=T.border; e.currentTarget.style.color=T.textSub; }}
+        >Cancel</button>
+        <button onClick={onConfirm} style={{
+          flex:1, padding:"0.78rem", borderRadius:11,
+          border:"none", background:"linear-gradient(135deg,#f87171,#ef4444)",
+          color:"white", fontWeight:700, fontSize:"0.88rem",
+          cursor:"pointer", fontFamily:"'DM Sans',sans-serif",
+          transition:"all .15s",
+        }}
+          onMouseEnter={e=>{ e.currentTarget.style.filter="brightness(1.1)"; e.currentTarget.style.transform="translateY(-1px)"; }}
+          onMouseLeave={e=>{ e.currentTarget.style.filter=""; e.currentTarget.style.transform=""; }}
+        >Yes, Sign Out</button>
+      </div>
+    </div>
+  </div>
+);
+
+/* ─────────────────────────────────────────────
+   MOBILE AVATAR MENU  (tap avatar → dropdown with logout)
+───────────────────────────────────────────── */
+const MobileAvatarMenu = ({ onLogout, setActive, T }) => {
+  const [open,    setOpen]    = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("touchstart", handler);
+    return () => { document.removeEventListener("mousedown", handler); document.removeEventListener("touchstart", handler); };
+  }, []);
+
+  return (
+    <>
+      <div ref={ref} style={{ position:"relative", flexShrink:0 }}>
+        <div onClick={()=>setOpen(o=>!o)} style={{
+          width:30, height:30, borderRadius:"50%",
+          background:"linear-gradient(135deg,#5eead4,#3b82f6)",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          color:"#07061a", fontWeight:800, fontSize:"0.75rem", cursor:"pointer",
+          outline: open ? "2px solid #5eead4" : "none",
+          transition:"outline .15s",
+        }}>SA</div>
+
+        {open && (
+          <div style={{
+            position:"absolute", top:"calc(100% + 8px)", right:0,
+            minWidth:180, borderRadius:12,
+            background: T.dark ? "#1e1b4b" : "#ffffff",
+            border:`1px solid ${T.border}`,
+            boxShadow:"0 8px 32px rgba(0,0,0,0.3)",
+            zIndex:50, overflow:"hidden",
+            animation:"fadeUp .15s ease",
+          }}>
+            <div style={{ padding:"0.85rem 1rem", borderBottom:`1px solid ${T.border}` }}>
+              <div style={{ display:"flex", alignItems:"center", gap:"0.6rem" }}>
+                <div style={{ width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#5eead4,#3b82f6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#07061a",fontWeight:800,fontSize:"0.72rem",flexShrink:0 }}>SA</div>
+                <div>
+                  <div style={{ color:T.text, fontSize:"0.82rem", fontWeight:700 }}>System Admin</div>
+                  <div style={{ color:T.textMuted, fontSize:"0.68rem" }}>Registrar</div>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding:"0.4rem" }}>
+              <button onClick={()=>{ setOpen(false); setActive("settings"); }} style={{
+                width:"100%", display:"flex", alignItems:"center", gap:"0.6rem",
+                padding:"0.6rem 0.75rem", borderRadius:8, border:"none",
+                background:"transparent", color:T.textSub,
+                fontSize:"0.82rem", fontWeight:500, cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif", textAlign:"left", transition:"background .14s",
+              }}
+                onMouseEnter={e=>e.currentTarget.style.background=T.surfaceHov}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+              >⚙️ Settings</button>
+
+              <div style={{ height:1, background:T.border, margin:"0.3rem 0.4rem" }}/>
+
+              <button onClick={()=>{ setOpen(false); setConfirm(true); }} style={{
+                width:"100%", display:"flex", alignItems:"center", gap:"0.6rem",
+                padding:"0.6rem 0.75rem", borderRadius:8, border:"none",
+                background:"rgba(248,113,113,0.08)", color:"#f87171",
+                fontSize:"0.82rem", fontWeight:700, cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif", textAlign:"left", transition:"background .14s",
+              }}
+                onMouseEnter={e=>e.currentTarget.style.background="rgba(248,113,113,0.16)"}
+                onMouseLeave={e=>e.currentTarget.style.background="rgba(248,113,113,0.08)"}
+              >🚪 Sign Out</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {confirm && (
+        <LogoutConfirmModal
+          T={T}
+          onConfirm={onLogout}
+          onCancel={()=>setConfirm(false)}
+        />
+      )}
+    </>
+  );
+};
+
+/* ─────────────────────────────────────────────
    DASHBOARD LAYOUT  — KEY FIXES:
    1. Root div: width:100vw, height:100vh, overflow:hidden
    2. Global CSS resets html/body/root to 100% width & height
@@ -1165,6 +1324,7 @@ const DashboardLayout = ({ onLogout, dark, toggleDark }) => {
           background:T.headerBg, backdropFilter:"blur(12px)",
           flexShrink:0, zIndex:9,
           width:"100%",
+          position:"relative",
         }}>
           {sm && (
             <div style={{ display:"flex",alignItems:"center",gap:"0.5rem",marginRight:"auto" }}>
@@ -1188,7 +1348,13 @@ const DashboardLayout = ({ onLogout, dark, toggleDark }) => {
             onMouseEnter={e=>e.currentTarget.style.transform="rotate(20deg) scale(1.1)"}
             onMouseLeave={e=>e.currentTarget.style.transform=""}
           >{dark?"☀️":"🌙"}</button>
-          <div style={{ width:sm?30:34,height:sm?30:34,borderRadius:"50%",background:"linear-gradient(135deg,#5eead4,#3b82f6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#07061a",fontWeight:800,fontSize:"0.75rem",cursor:"pointer",flexShrink:0 }}>SA</div>
+
+          {/* Avatar — desktop: just avatar; mobile: avatar + logout dropdown */}
+          {sm ? (
+            <MobileAvatarMenu onLogout={onLogout} setActive={setActive} T={T}/>
+          ) : (
+            <div style={{ width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#5eead4,#3b82f6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#07061a",fontWeight:800,fontSize:"0.75rem",cursor:"pointer",flexShrink:0 }}>SA</div>
+          )}
         </header>
 
         {/* Main scrollable content */}
