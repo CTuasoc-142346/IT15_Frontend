@@ -1,13 +1,4 @@
-// src/pages/LoginPage.jsx
-// ─────────────────────────────────────────────
-// Login page — matches existing App.jsx aesthetic exactly:
-//   - Same NekoMascot SVG cat
-//   - Same dark indigo gradient + teal accents
-//   - Same DM Sans + Syne fonts
-//   - Interactive: cat covers eyes on password, watches on email
-//   - Credential: any username + any password → login
-// ─────────────────────────────────────────────
-
+import { loginRequest, saveSession } from "../api/auth";
 import { useState, useCallback } from "react";
 
 /* ── Neko Mascot (copied from existing App.jsx) ────────────── */
@@ -115,11 +106,23 @@ export default function LoginPage({ onLogin, dark, toggleDark }) {
   const [err,      setErr]   = useState("");
   const [busy,     setBusy]  = useState(false);
 
-  const doLogin = useCallback(() => {
+  // ── UPDATED: calls the real Laravel API instead of a fake timeout ──
+  const doLogin = useCallback(async () => {
     if (!email.trim()) { setErr("Please enter your username."); return; }
     if (!pw.trim())    { setErr("Please enter your password."); return; }
-    setErr(""); setBusy(true);
-    setTimeout(() => { setBusy(false); onLogin({ name: "Admin User", role: "Registrar" }); }, 900);
+
+    setErr("");
+    setBusy(true);
+
+    try {
+      const { user, token } = await loginRequest(email.trim(), pw);
+      saveSession(token, user);   // saves to localStorage
+      onLogin(user);              // tells App.jsx we're logged in
+    } catch (error) {
+      setErr(error.message ?? "Login failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }, [email, pw, onLogin]);
 
   const onKey = useCallback((e) => { if (e.key === "Enter") doLogin(); }, [doLogin]);
@@ -205,8 +208,6 @@ export default function LoginPage({ onLogin, dark, toggleDark }) {
         width: "100%",
         minHeight: "100vh",
         position: "relative", zIndex: 1,
-        // On wide screens: side by side
-        "@media (min-width:640px)": { gridTemplateColumns: "1fr 1fr" },
       }}>
 
         {/* Left Branding Panel — hidden on mobile */}
@@ -218,7 +219,6 @@ export default function LoginPage({ onLogin, dark, toggleDark }) {
           background: dark ? "rgba(13,11,40,0.65)" : "rgba(255,255,255,0.55)",
           backdropFilter: "blur(10px)",
           animation: "fadeInUp .6s ease",
-          // Hide on mobile via media query applied by wrapper
         }} className="login-left-panel">
           <NekoMascot state={catState} dark={dark}/>
           <h1 style={{
@@ -276,10 +276,10 @@ export default function LoginPage({ onLogin, dark, toggleDark }) {
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              {/* Email */}
+              {/* Email / Username */}
               <div>
                 <label style={{ display:"block",fontSize:"0.72rem",fontWeight:700,color:dark?"#94a3b8":"#4b5563",marginBottom:"0.4rem",textTransform:"uppercase",letterSpacing:"0.06em" }}>
-                  Username
+                  Email
                 </label>
                 <input
                   type="text" value={email}
@@ -287,7 +287,7 @@ export default function LoginPage({ onLogin, dark, toggleDark }) {
                   onFocus={() => { setCat("email"); setErr(""); }}
                   onBlur={() => setCat("idle")}
                   onKeyDown={onKey}
-                  placeholder="Enter your username"
+                  placeholder="Enter your email"
                   className="l-inp" style={{
                     ...inp,
                     color: dark ? "#f0f4ff" : "#0f172a",
@@ -359,7 +359,7 @@ export default function LoginPage({ onLogin, dark, toggleDark }) {
               </div>
 
               <p style={{ textAlign:"center",fontSize:"0.74rem",color:dark?"#4b5563":"#9ca3af",margin:0 }}>
-                Demo: any username + any password → Sign In
+                Enter your registered email and password to sign in.
               </p>
             </div>
           </div>
