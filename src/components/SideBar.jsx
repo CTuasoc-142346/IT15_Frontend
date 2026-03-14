@@ -1,72 +1,57 @@
-// src/components/Sidebar.jsx
-// ─────────────────────────────────────────────
-// Collapsible sidebar — same style as existing App.jsx Sidebar
-// Includes logout button that triggers confirmation modal
-// ─────────────────────────────────────────────
+// src/components/SideBar.jsx
 
 import { useState } from "react";
 import LogoutConfirm from "./LogoutConfirm";
+import { WeatherSummary, WeatherModal } from "./WeatherWidget";
 
 const NAV = [
   { id: "dashboard", label: "Dashboard",         icon: "⊞" },
-  { id: "programs",  label: "Program Offerings", icon: "🎓" },
-  { id: "subjects",  label: "Subject Offerings", icon: "📚" },
+  { id: "posts",     label: "Posts",              icon: "📝" },
+  { id: "programs",  label: "Program Offerings",  icon: "🎓" },
+  { id: "subjects",  label: "Subject Offerings",  icon: "📚" },
 ];
 
 export default function Sidebar({ active, setActive, collapsed, setCollapsed, onLogout, T, isOpen, onClose }) {
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showWeather, setShowWeather] = useState(false);
 
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && (
-        <div
-          onClick={onClose}
-          style={{
-            position: "fixed", inset: 0, zIndex: 19,
-            background: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(2px)",
-            display: "none",
-          }}
-          className="sidebar-overlay"
-        />
+        <div onClick={onClose} style={{
+          position: "fixed", inset: 0, zIndex: 19,
+          background: "rgba(0,0,0,0.5)", backdropFilter: "blur(2px)", display: "none",
+        }} className="sidebar-overlay" />
       )}
 
       <aside style={{
         width: collapsed ? 68 : 224,
-        height: "100vh",
-        flexShrink: 0,
+        height: "100vh", flexShrink: 0,
         background: T.sidebarBg,
-        display: "flex",
-        flexDirection: "column",
+        display: "flex", flexDirection: "column",
         transition: "width .28s cubic-bezier(.4,0,.2,1)",
         borderRight: "1px solid rgba(255,255,255,0.06)",
-        position: "sticky", top: 0,
-        zIndex: 20,
-        overflow: "hidden",
+        position: "sticky", top: 0, zIndex: 20, overflow: "hidden",
       }}>
+
         {/* Logo */}
         <div style={{
           padding: "1.3rem 1rem",
           display: "flex", alignItems: "center", gap: "0.7rem",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
-          flexShrink: 0,
+          borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0,
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, flexShrink: 0,
             background: "linear-gradient(135deg,#5eead4,#3b82f6)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "1.2rem",
-            boxShadow: "0 4px 12px rgba(94,234,212,0.3)",
+            fontSize: "1.2rem", boxShadow: "0 4px 12px rgba(94,234,212,0.3)",
           }}>🎓</div>
           {!collapsed && (
             <div style={{ overflow: "hidden" }}>
               <div style={{ color: "#f0f4ff", fontWeight: 700, fontSize: "0.9rem", whiteSpace: "nowrap", fontFamily: "'Syne',sans-serif" }}>
                 AMS Portal
               </div>
-              <div style={{ color: "#4b5563", fontSize: "0.62rem", whiteSpace: "nowrap" }}>
-                IT15 — Frontend
-              </div>
+              <div style={{ color: "#4b5563", fontSize: "0.62rem", whiteSpace: "nowrap" }}>IT15 — Frontend</div>
             </div>
           )}
         </div>
@@ -74,8 +59,7 @@ export default function Sidebar({ active, setActive, collapsed, setCollapsed, on
         {/* Nav */}
         <nav style={{
           flex: 1, padding: "0.8rem 0.6rem",
-          display: "flex", flexDirection: "column", gap: "0.18rem",
-          overflowY: "auto",
+          display: "flex", flexDirection: "column", gap: "0.18rem", overflowY: "auto",
         }}>
           {!collapsed && (
             <div style={{
@@ -84,11 +68,8 @@ export default function Sidebar({ active, setActive, collapsed, setCollapsed, on
               padding: "0 0.6rem", marginBottom: "0.35rem",
             }}>Main Menu</div>
           )}
-
           {NAV.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => { setActive(n.id); onClose && onClose(); }}
+            <button key={n.id} onClick={() => { setActive(n.id); onClose?.(); }}
               title={collapsed ? n.label : ""}
               style={{
                 display: "flex", alignItems: "center", gap: "0.7rem",
@@ -100,10 +81,8 @@ export default function Sidebar({ active, setActive, collapsed, setCollapsed, on
                 fontSize: "0.86rem", width: "100%", textAlign: "left",
                 transition: "all .16s",
                 borderLeft: active === n.id ? "3px solid #5eead4" : "3px solid transparent",
-                fontFamily: "'DM Sans',sans-serif",
-                whiteSpace: "nowrap",
-              }}
-            >
+                fontFamily: "'DM Sans',sans-serif", whiteSpace: "nowrap",
+              }}>
               <span style={{ fontSize: "1.05rem", flexShrink: 0 }}>{n.icon}</span>
               {!collapsed && n.label}
               {!collapsed && active === n.id && (
@@ -115,6 +94,11 @@ export default function Sidebar({ active, setActive, collapsed, setCollapsed, on
 
         {/* Footer */}
         <div style={{ padding: "0.75rem 0.6rem", borderTop: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
+
+          {/* Weather strip — above username */}
+          <WeatherSummary T={T} collapsed={collapsed} onOpen={() => setShowWeather(true)} />
+
+          {/* User info */}
           {!collapsed && (
             <div style={{
               display: "flex", alignItems: "center", gap: "0.65rem",
@@ -133,33 +117,26 @@ export default function Sidebar({ active, setActive, collapsed, setCollapsed, on
             </div>
           )}
 
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            style={{
-              display: "flex", alignItems: "center", gap: "0.65rem",
-              padding: "0.5rem 0.82rem", borderRadius: 8,
-              border: "none", cursor: "pointer",
-              background: "transparent", color: "#4b5563",
-              fontSize: "0.8rem", width: "100%",
-              fontFamily: "'DM Sans',sans-serif",
-              transition: "color .15s",
-            }}
-          >
+          <button onClick={() => setCollapsed(!collapsed)} style={{
+            display: "flex", alignItems: "center", gap: "0.65rem",
+            padding: "0.5rem 0.82rem", borderRadius: 8,
+            border: "none", cursor: "pointer",
+            background: "transparent", color: "#4b5563",
+            fontSize: "0.8rem", width: "100%",
+            fontFamily: "'DM Sans',sans-serif", transition: "color .15s",
+          }}>
             <span>{collapsed ? "⇥" : "⇤"}</span>
             {!collapsed && "Collapse"}
           </button>
 
-          <button
-            onClick={() => setShowConfirm(true)}
-            style={{
-              display: "flex", alignItems: "center", gap: "0.65rem",
-              padding: "0.5rem 0.82rem", borderRadius: 8,
-              border: "none", cursor: "pointer",
-              background: "rgba(248,113,113,0.08)", color: "#f87171",
-              fontSize: "0.8rem", width: "100%", marginTop: "0.25rem",
-              fontFamily: "'DM Sans',sans-serif",
-              transition: "background .15s",
-            }}
+          <button onClick={() => setShowConfirm(true)} style={{
+            display: "flex", alignItems: "center", gap: "0.65rem",
+            padding: "0.5rem 0.82rem", borderRadius: 8,
+            border: "none", cursor: "pointer",
+            background: "rgba(248,113,113,0.08)", color: "#f87171",
+            fontSize: "0.8rem", width: "100%", marginTop: "0.25rem",
+            fontFamily: "'DM Sans',sans-serif", transition: "background .15s",
+          }}
             onMouseEnter={(e) => e.currentTarget.style.background = "rgba(248,113,113,0.15)"}
             onMouseLeave={(e) => e.currentTarget.style.background = "rgba(248,113,113,0.08)"}
           >
@@ -168,14 +145,8 @@ export default function Sidebar({ active, setActive, collapsed, setCollapsed, on
         </div>
       </aside>
 
-      {/* Logout confirm */}
-      {showConfirm && (
-        <LogoutConfirm
-          T={T}
-          onConfirm={onLogout}
-          onCancel={() => setShowConfirm(false)}
-        />
-      )}
+      {showWeather  && <WeatherModal T={T} onClose={() => setShowWeather(false)} />}
+      {showConfirm  && <LogoutConfirm T={T} onConfirm={onLogout} onCancel={() => setShowConfirm(false)} />}
     </>
   );
 }

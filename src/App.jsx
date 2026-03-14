@@ -1,21 +1,15 @@
 // src/App.jsx
-// ─────────────────────────────────────────────
-// Root component — wires everything together:
-//   - Login → Dashboard layout
-//   - Sidebar (desktop) + Bottom nav (mobile)
-//   - Sticky header with dark toggle
-//   - Logout confirmation modal
-//   - Responsive breakpoints via useBreakpoint
-// ─────────────────────────────────────────────
 
 import { useState, useEffect } from "react";
-import { mkTheme } from "./theme";
-import LoginPage    from "./pages/loginPage";
-import Sidebar      from "./components/SideBar";
-import Dashboard    from "./components/Dashboard";
-import ProgramList  from "./components/ProgramList";
-import SubjectList  from "./components/SubjectList";
-import LogoutConfirm from "./components/LogoutConfirm";
+import { mkTheme }       from "./theme";
+import LoginPage         from "./pages/loginPage";
+import Sidebar           from "./components/SideBar";
+import Dashboard         from "./components/Dashboard";
+import ProgramList       from "./components/ProgramList";
+import SubjectList       from "./components/SubjectList";
+import PostsPage         from "./components/PostsPage";
+import LogoutConfirm     from "./components/LogoutConfirm";
+import { getUser, getToken, clearSession } from "./api/auth";
 
 /* ── Responsive hook ─────────────────────────────────────── */
 const useBreakpoint = () => {
@@ -31,8 +25,9 @@ const useBreakpoint = () => {
 /* ── Nav items ───────────────────────────────────────────── */
 const NAV = [
   { id: "dashboard", label: "Dashboard",         icon: "⊞" },
-  { id: "programs",  label: "Program Offerings", icon: "🎓" },
-  { id: "subjects",  label: "Subject Offerings", icon: "📚" },
+  { id: "posts",     label: "Posts",              icon: "📝" },
+  { id: "programs",  label: "Program Offerings",  icon: "🎓" },
+  { id: "subjects",  label: "Subject Offerings",  icon: "📚" },
 ];
 
 /* ── Mobile bottom nav ───────────────────────────────────── */
@@ -68,9 +63,9 @@ const BottomNav = ({ active, setActive, T }) => (
 function DashboardLayout({ user, onLogout, dark, toggleDark }) {
   const bp = useBreakpoint();
   const { sm, md } = bp;
-  const [active,    setActive]    = useState("dashboard");
-  const [collapsed, setCollapsed] = useState(md);
-  const [showLogout,setShowLogout] = useState(false);
+  const [active,     setActive]     = useState("dashboard");
+  const [collapsed,  setCollapsed]  = useState(md);
+  const [showLogout, setShowLogout] = useState(false);
   const T = mkTheme(dark);
 
   useEffect(() => { setCollapsed(md); }, [md]);
@@ -78,6 +73,7 @@ function DashboardLayout({ user, onLogout, dark, toggleDark }) {
   const renderPage = () => {
     switch (active) {
       case "dashboard": return <Dashboard  T={T} bp={bp} />;
+      case "posts":     return <PostsPage  T={T} bp={bp} />;
       case "programs":  return <ProgramList T={T} bp={bp} />;
       case "subjects":  return <SubjectList T={T} bp={bp} />;
       default:          return <Dashboard  T={T} bp={bp} />;
@@ -99,9 +95,6 @@ function DashboardLayout({ user, onLogout, dark, toggleDark }) {
         @keyframes fadeInUp  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
         @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
         @keyframes scaleIn   { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
-        @keyframes nekoBob   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
-        @keyframes nekoZzz   { 0%{opacity:0;transform:translate(0,0) scale(.7)} 20%{opacity:1} 80%{opacity:1} 100%{opacity:0;transform:translate(12px,-20px) scale(1.2)} }
-        @keyframes nekoBlink { 0%,92%,100%{transform:scaleY(1)} 96%{transform:scaleY(.08)} }
         ::-webkit-scrollbar { width:4px; height:4px; }
         ::-webkit-scrollbar-track { background:transparent; }
         ::-webkit-scrollbar-thumb { background:${T.scrollThumb}; border-radius:4px; }
@@ -149,7 +142,6 @@ function DashboardLayout({ user, onLogout, dark, toggleDark }) {
             </div>
           )}
 
-          {/* Dark toggle */}
           <button
             onClick={toggleDark}
             style={{
@@ -161,28 +153,23 @@ function DashboardLayout({ user, onLogout, dark, toggleDark }) {
             onMouseLeave={(e) => e.currentTarget.style.transform = ""}
           >{dark ? "☀️" : "🌙"}</button>
 
-          {/* Avatar + Logout (desktop) */}
           {!sm ? (
-            <div style={{ position: "relative" }}>
-              <div
-                title="Click to sign out"
-                onClick={() => setShowLogout(true)}
-                style={{
-                  width: 34, height: 34, borderRadius: "50%",
-                  background: "linear-gradient(135deg,#5eead4,#3b82f6)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#07061a", fontWeight: 800, fontSize: "0.75rem",
-                  cursor: "pointer", flexShrink: 0,
-                  transition: "box-shadow .2s",
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(94,234,212,0.3)"}
-                onMouseLeave={(e) => e.currentTarget.style.boxShadow = "none"}
-              >
-                {user?.name?.charAt(0) || "A"}
-              </div>
+            <div
+              title="Click to sign out"
+              onClick={() => setShowLogout(true)}
+              style={{
+                width: 34, height: 34, borderRadius: "50%",
+                background: "linear-gradient(135deg,#5eead4,#3b82f6)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#07061a", fontWeight: 800, fontSize: "0.75rem",
+                cursor: "pointer", flexShrink: 0, transition: "box-shadow .2s",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 0 0 3px rgba(94,234,212,0.3)"}
+              onMouseLeave={(e) => e.currentTarget.style.boxShadow = "none"}
+            >
+              {user?.name?.charAt(0) || "A"}
             </div>
           ) : (
-            /* Mobile logout button */
             <button
               onClick={() => setShowLogout(true)}
               style={{
@@ -208,16 +195,10 @@ function DashboardLayout({ user, onLogout, dark, toggleDark }) {
         </main>
       </div>
 
-      {/* Mobile bottom nav */}
       {sm && <BottomNav active={active} setActive={setActive} T={T} />}
 
-      {/* Logout confirmation */}
       {showLogout && (
-        <LogoutConfirm
-          T={T}
-          onConfirm={onLogout}
-          onCancel={() => setShowLogout(false)}
-        />
+        <LogoutConfirm T={T} onConfirm={onLogout} onCancel={() => setShowLogout(false)} />
       )}
     </div>
   );
@@ -225,11 +206,15 @@ function DashboardLayout({ user, onLogout, dark, toggleDark }) {
 
 /* ── Root ────────────────────────────────────────────────── */
 export default function App() {
-  const [user,   setUser]   = useState(null);
-  const [dark,   setDark]   = useState(true);
+  const [user, setUser] = useState(() => {
+    const token = getToken();
+    const saved = getUser();
+    return token && saved ? saved : null;
+  });
+  const [dark, setDark] = useState(true);
 
-  const handleLogin  = (userData)  => setUser(userData);
-  const handleLogout = () => { setUser(null); };
+  const handleLogin  = (userData) => setUser(userData);
+  const handleLogout = () => { clearSession(); setUser(null); };
 
   return user ? (
     <DashboardLayout
